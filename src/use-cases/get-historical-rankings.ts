@@ -1,4 +1,5 @@
 import axios from 'axios';
+import csv from 'csvtojson';
 import { pipeAsync } from './common';
 
 const getFormattedDate = (): string => new Date().toISOString().split('T')[0];
@@ -6,18 +7,45 @@ const getFormattedDate = (): string => new Date().toISOString().split('T')[0];
 const buildHistoricalRankingsUrl = (formattedDate: string): string =>
   `https://raw.githubusercontent.com/beefsack/bgg-ranking-historicals/master/${formattedDate}.csv`;
 
-const fetchBggRankings = async (url: string): Promise<string> =>
-  axios.get(url).then((response) => response.data);
+type GameRank = {
+  /** BGG Things ID */
+  'ID': string;
 
-const _TEMP_printValue = (value: string): void => {
-  console.log('printValue: ', value.length);
+  /** Board Game Name */
+  'Name': string;
+
+  /** Board Game Publish Year */
+  'Year': string;
+
+  /** BGG Board Game Rank */
+  'Rank': number;
+
+  /** BGG Board Game Average Rating */
+  'Average': number;
+
+  /** BGG Board Game Bayes Average Rating */
+  'Bayes average': number;
+
+  /** Total Number of BGG Board Game Rating */
+  'Users rated': number;
+
+  /** BGG Relative Board Game URL */
+  'URL': string;
+
+  /** Board Game Thumbnail URL */
+  'Thumbnail': string;
 };
 
+const fetchBggRankings = async (url: string): Promise<GameRank[]> =>
+  axios
+    .get(url)
+    .then((response) => response.data)
+    .then((csvData) => csv().fromString(csvData));
+
 export const getHistoricalRankings = async (): Promise<void> => {
-  await pipeAsync(
+  return await pipeAsync(
     getFormattedDate,
     buildHistoricalRankingsUrl,
     fetchBggRankings,
-    _TEMP_printValue,
   )('');
 };
